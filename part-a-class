@@ -1,0 +1,95 @@
+import React, { Component } from 'react';
+
+class Clock extends Component {
+  state = { time: new Date().toLocaleTimeString() };
+  
+  componentDidMount() {
+    this.timerID = setInterval(() => this.tick(), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timerID);
+  }
+  tick() {
+    this.setState({ time: new Date().toLocaleTimeString() });
+  }
+  render() {
+    return <h3>Bây giờ là: {this.state.time}</h3>;
+  }
+}
+
+export default class App extends Component {
+  state = {
+    expenses: [
+      { id: 1, name: 'Phở', amount: 40000, category: 'Ăn uống' },
+      { id: 2, name: 'Xăng', amount: 50000, category: 'Đi lại' }
+    ],
+    filter: 'Tất cả'
+  };
+
+  componentDidUpdate() {
+    const total = this.state.expenses.reduce((sum, item) => sum + item.amount, 0);
+    document.title = `Tổng chi: ${total} VNĐ`;
+  }
+
+  handleAdd = (e) => {
+    e.preventDefault();
+    const name = e.target.name.value;
+    const amount = Number(e.target.amount.value);
+    const category = e.target.category.value;
+    
+    if (!name || amount <= 0) return alert('Vui lòng nhập hợp lệ!');
+
+    const newExpense = { id: Date.now(), name, amount, category };
+    this.setState({ expenses: [...this.state.expenses, newExpense] });
+    e.target.reset();
+  };
+
+  handleDelete = (id) => {
+    if (window.confirm('Bạn có chắc muốn xóa?')) {
+      this.setState({ expenses: this.state.expenses.filter(item => item.id !== id) });
+    }
+  };
+
+  render() {
+    const { expenses, filter } = this.state;
+    const filteredExpenses = filter === 'Tất cả' ? expenses : expenses.filter(e => e.category === filter);
+    const totalAmount = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <Clock />
+        
+        <form onSubmit={this.handleAdd}>
+          <input name="name" placeholder="Nội dung" required />
+          <input name="amount" type="number" placeholder="Số tiền" required />
+          <select name="category">
+            <option value="Ăn uống">Ăn uống</option>
+            <option value="Đi lại">Đi lại</option>
+            <option value="Học tập">Học tập</option>
+            <option value="Giải trí">Giải trí</option>
+          </select>
+          <button type="submit">Thêm</button>
+        </form>
+
+        <div style={{ marginTop: '20px' }}>
+          <label>Lọc: </label>
+          <select onChange={(e) => this.setState({ filter: e.target.value })}>
+            <option value="Tất cả">Tất cả</option>
+            <option value="Ăn uống">Ăn uống</option>
+            <option value="Đi lại">Đi lại</option>
+          </select>
+        </div>
+
+        <ul>
+          {filteredExpenses.map(item => (
+            <li key={item.id}>
+              {item.name} - {item.amount} VNĐ ({item.category}) 
+              <button onClick={() => this.handleDelete(item.id)}>Xóa</button>
+            </li>
+          ))}
+        </ul>
+        <h4>Tổng tiền: {totalAmount} VNĐ</h4>
+      </div>
+    );
+  }
+}

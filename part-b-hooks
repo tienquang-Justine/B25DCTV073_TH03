@@ -1,0 +1,90 @@
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+
+const ThemeContext = createContext();
+
+const useFetch = (url) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(url)
+      .then(res => res.json())
+      .then(data => { setData(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [url]);
+
+  return { data, setData, loading };
+};
+
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <ThemeContext.Provider value={theme}>
+      <div style={{ background: theme === 'light' ? '#fff' : '#333', color: theme === 'light' ? '#000' : '#fff', padding: '20px', minHeight: '100vh' }}>
+        <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>Đổi giao diện</button>
+        <ExpenseTracker />
+      </div>
+    </ThemeContext.Provider>
+  );
+}
+
+function ExpenseTracker() {
+  const apiUrl = 'YOUR_MOCKAPI_URL';
+  const { data: expenses, setData: setExpenses, loading } = useFetch(apiUrl);
+  const inputRef = useRef(null);
+  const theme = useContext(ThemeContext);
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    const newExpense = {
+      name: e.target.name.value,
+      amount: Number(e.target.amount.value),
+      category: e.target.category.value
+    };
+
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newExpense)
+    }).then(res => res.json()).then(addedItem => {
+      setExpenses([...expenses, addedItem]);
+      e.target.reset();
+      inputRef.current.focus();
+    });
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Bạn có chắc muốn xóa?')) {
+      fetch(`${apiUrl}/${id}`, { method: 'DELETE' })
+        .then(() => setExpenses(expenses.filter(item => item.id !== id)));
+    }
+  };
+
+  if (loading) return <p>Đang tải dữ liệu...</p>;
+
+  return (
+    <div>
+      <h2>Sổ chi tiêu ({theme === 'light' ? 'Sáng' : 'Tối'})</h2>
+      
+      <form onSubmit={handleAdd}>
+        <input ref={inputRef} name="name" placeholder="Nội dung" required />
+        <input name="amount" type="number" placeholder="Số tiền" required />
+        <select name="category">
+          <option value="Ăn uống">Ăn uống</option>
+          <option value="Đi lại">Đi lại</option>
+        </select>
+        <button type="submit">Thêm</button>
+      </form>
+
+      <ul>
+        {expenses.map(item => (
+          <li key={item.id}>
+            {item.name} - {item.amount} VNĐ
+            <button onClick={() => handleDelete(item.id)}>Xóa</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
